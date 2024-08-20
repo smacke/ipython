@@ -25,7 +25,9 @@ class AutoreloadReliabilityTestHook(DeduperReloader):
     def _is_test_context(self) -> bool:
         return True
 
-    def patch_namespace(self, module: ModuleType | type, prefixes: list[str] | None = None) -> bool:
+    def patch_namespace(
+        self, module: ModuleType | type, prefixes: list[str] | None = None
+    ) -> bool:
         try:
             assert super().patch_namespace(module, prefixes)
             return True
@@ -36,6 +38,7 @@ class AutoreloadReliabilityTestHook(DeduperReloader):
 
 def is_nonempty_file(fname: str) -> bool:
     return len(fname) > 0
+
 
 def squish_text(text: str) -> str:
     """
@@ -74,7 +77,9 @@ def squish_text(text: str) -> str:
             indentation = prev_indentation
         else:
             prev_indentation = indentation
-        transformed_text_lines.append(textwrap.indent(line_without_indentation, " " * indentation))
+        transformed_text_lines.append(
+            textwrap.indent(line_without_indentation, " " * indentation)
+        )
     return textwrap.dedent("\n".join(transformed_text_lines))
 
 
@@ -84,7 +89,8 @@ class AutoreloadDetectionSuite(unittest.TestCase):
     """
 
     def test_compare_ast(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def factorial(n):
                 def fn(sdfsdf):
                     print(sdfsdf)
@@ -101,8 +107,10 @@ class AutoreloadDetectionSuite(unittest.TestCase):
                 print(y)
             print(1)
             x = 1212121
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def factorial(n):
                 def fn(sdfsdf):
                     print(sdfsdf+"!!!")
@@ -119,14 +127,16 @@ class AutoreloadDetectionSuite(unittest.TestCase):
                 print(y)
             print(1)
             x = 1212121
-        """)
+        """
+        )
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
 
         assert not compare_ast(ast_1, ast_2)
 
     def test_compare_ast2(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def factorial(n):
                 def fn(sdfsdf):
                     print(sdfsdf)
@@ -143,8 +153,10 @@ class AutoreloadDetectionSuite(unittest.TestCase):
                 print(y)
             print(1)
             x = 1212121
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def factorial(n):
                 def fn(sdfsdf):
                     print(sdfsdf)
@@ -161,25 +173,30 @@ class AutoreloadDetectionSuite(unittest.TestCase):
                 print(y)
             print(1)
             x = 1212121
-        """)
+        """
+        )
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
 
         assert compare_ast(ast_1, ast_2)
 
     def test_autoreload_no_changes(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def factorial(n):
                 print(n)
             print(1)
             x = 1212121
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def factorial(n):
                 print(n)
             print(1)
             x = 1212121
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -188,17 +205,21 @@ class AutoreloadDetectionSuite(unittest.TestCase):
         assert autoreload_hook._to_autoreload.defs_to_reload == {}
 
     def test_autoreload_changes_outside_function(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def factorial(n):
                 print(n)
             print(1)
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def factorial(n):
                 print(n)
             print(1)
             x = 1212121
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -206,16 +227,20 @@ class AutoreloadDetectionSuite(unittest.TestCase):
         assert not autoreload_hook.detect_autoreload(ast_1, ast_2)
 
     def test_autoreload_changes_inside_function(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def factorial(n):
                 print(n)
             print(1)
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def factorial(n):
                 print(n + "edit!")
             print(1)
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -224,16 +249,20 @@ class AutoreloadDetectionSuite(unittest.TestCase):
         assert len(autoreload_hook._to_autoreload.defs_to_reload) == 1
 
     def test_autoreload_changes_inside_and_outside_function(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def factorial(n):
                 print(n)
             print(1)
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def factorial(n):
                 print(n + "edit!")
             print(2)
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -241,20 +270,24 @@ class AutoreloadDetectionSuite(unittest.TestCase):
         assert not autoreload_hook.detect_autoreload(ast_1, ast_2)
 
     def test_autoreload_changes_inner_function(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def factorial(n):
                 def foo():
                     x = 3   
                     return x
                 return foo
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def factorial(n):
                 def foo():
                     x = 4  
                     return x
                 return foo
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -263,7 +296,8 @@ class AutoreloadDetectionSuite(unittest.TestCase):
         assert len(autoreload_hook._to_autoreload.defs_to_reload) == 1
 
     def test_autoreload_changes_multiple_function(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def factorial(n):
                 def foo():
                     x = 3   
@@ -271,8 +305,10 @@ class AutoreloadDetectionSuite(unittest.TestCase):
                 return foo
             def bar():
                 return 1
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def factorial(n):
                 def foo():
                     x = 4  
@@ -280,7 +316,8 @@ class AutoreloadDetectionSuite(unittest.TestCase):
                 return foo
             def bar():
                 return 2
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -289,7 +326,8 @@ class AutoreloadDetectionSuite(unittest.TestCase):
         assert len(autoreload_hook._to_autoreload.defs_to_reload) == 2
 
     def test_autoreload_change_one_function_of_multiple(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def factorial(n):
                 def foo():
                     x = 3   
@@ -297,8 +335,10 @@ class AutoreloadDetectionSuite(unittest.TestCase):
                 return foo
             def bar():
                 return 1
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def factorial(n):
                 def foo():
                     x = 4  
@@ -306,7 +346,8 @@ class AutoreloadDetectionSuite(unittest.TestCase):
                 return foo
             def bar():
                 return 1
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -315,16 +356,20 @@ class AutoreloadDetectionSuite(unittest.TestCase):
         assert len(autoreload_hook._to_autoreload.defs_to_reload) == 1
 
     def test_autoreload_handling_moves(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def factorial(n):
                 return 1
             x = 1
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             x = 1
             def factorial(n):
                 return 1
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -333,22 +378,26 @@ class AutoreloadDetectionSuite(unittest.TestCase):
         assert len(autoreload_hook._to_autoreload.defs_to_reload) == 0
 
     def test_autoreload_handling_function_moves_success(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def factorial(n):
                 return 1
             x = 1
             def foo():
                 return 23
             x = 2
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
         x = 1
         x = 2
         def foo():
             return 23
         def factorial(n):
             return 1
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -357,18 +406,22 @@ class AutoreloadDetectionSuite(unittest.TestCase):
         assert len(autoreload_hook._to_autoreload.defs_to_reload) == 0
 
     def test_autoreload_handling_function_moves_only(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
         def factorial(n):
             return 1
         x = 1
         x = 2
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
         x = 2
         x = 1
         def factorial(n):
             return 1
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -376,17 +429,21 @@ class AutoreloadDetectionSuite(unittest.TestCase):
         assert not autoreload_hook.detect_autoreload(ast_1, ast_2)
 
     def test_autoreload_not_handling_new_imports(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
         def factorial(n):
             return 1
         x = 1
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
         import ast
         def factorial(n):
             return 1
         x = 1
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -394,16 +451,20 @@ class AutoreloadDetectionSuite(unittest.TestCase):
         assert not autoreload_hook.detect_autoreload(ast_1, ast_2)
 
     def test_autoreload_async_function(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
         async def sleep():
             print(f'Time: {time.time() - start:.2f}')
             await asyncio.sleep(1)
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
         async def sleep():
             print(f'Time: {time.time() - start:.2f}')
             await asyncio.sleep(10)
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -412,44 +473,52 @@ class AutoreloadDetectionSuite(unittest.TestCase):
         assert len(autoreload_hook._to_autoreload.defs_to_reload) == 1
 
     def test_autoreload_add_function(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
         async def sleep():
             print(f'Time: {time.time() - start:.2f}')
             await asyncio.sleep(1)
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
         async def sleep():
             print(f'Time: {time.time() - start:.2f}')
             await asyncio.sleep(1)
         def add(x,y):
             pass
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
 
         assert autoreload_hook.detect_autoreload(ast_1, ast_2)
-        assert list(autoreload_hook._to_autoreload.defs_to_reload.keys()) == ['add']
+        assert list(autoreload_hook._to_autoreload.defs_to_reload.keys()) == ["add"]
 
     def test_autoreload_add_function_ellipsis(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
         async def sleep():
             print(f'Time: {time.time() - start:.2f}')
             await asyncio.sleep(1)
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
         async def sleep():
             print(f'Time: {time.time() - start:.2f}')
             await asyncio.sleep(1)
         def add(x,y):
             ...
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
 
         assert autoreload_hook.detect_autoreload(ast_1, ast_2)
-        assert list(autoreload_hook._to_autoreload.defs_to_reload.keys()) == ['add']
+        assert list(autoreload_hook._to_autoreload.defs_to_reload.keys()) == ["add"]
 
 
 class AutoreloadPatchingSuite(unittest.TestCase):
@@ -461,61 +530,78 @@ class AutoreloadPatchingSuite(unittest.TestCase):
         self.autoreload_hook = AutoreloadReliabilityTestHook()
 
     def test_patching(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def foo():
                 return 1
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def foo():
                 return 2
-        """)
-        self.autoreload_hook._to_autoreload.defs_to_reload = {'foo': ast.parse(code2)}
-        mod = ModuleType('mod')
+        """
+        )
+        self.autoreload_hook._to_autoreload.defs_to_reload = {"foo": ast.parse(code2)}
+        mod = ModuleType("mod")
         exec(code1, mod.__dict__)
         self.autoreload_hook.patch_namespace(mod)
         assert mod.foo() == 2
 
     def test_patching_parameters(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def foo(n,s):
                 return n+s
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def foo(n):
                 return n
-        """)
-        self.autoreload_hook._to_autoreload.defs_to_reload = {'foo': ast.parse(code2)}
-        mod = ModuleType('mod')
+        """
+        )
+        self.autoreload_hook._to_autoreload.defs_to_reload = {"foo": ast.parse(code2)}
+        mod = ModuleType("mod")
         exec(code1, mod.__dict__)
         self.autoreload_hook.patch_namespace(mod)
         assert mod.foo(2) == 2
 
     def test_add_function(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def foo2(n):
                 return n
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def foo(n):
                 return 55
-        """)
-        self.autoreload_hook._to_autoreload.defs_to_reload = {'foo': ast.parse(code2)}
-        mod = ModuleType('mod')
+        """
+        )
+        self.autoreload_hook._to_autoreload.defs_to_reload = {"foo": ast.parse(code2)}
+        mod = ModuleType("mod")
         exec(code1, mod.__dict__)
         self.autoreload_hook.patch_namespace(mod)
         assert mod.foo(2) == 55
         assert mod.foo2(2) == 2
 
     def test_two_operations(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             def foo(n):
                 return 1
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def foo(n):
                 return 55
-        """)
-        code3 = squish_text("""
+        """
+        )
+        code3 = squish_text(
+            """
             def goo():
                 return -1
             def foo(n):
@@ -523,49 +609,58 @@ class AutoreloadPatchingSuite(unittest.TestCase):
                 return x+n
             def bar():
                 return 200
-        """)
-        self.autoreload_hook._to_autoreload.defs_to_reload = {'foo': ast.parse(code2)}
-        mod = ModuleType('mod')
+        """
+        )
+        self.autoreload_hook._to_autoreload.defs_to_reload = {"foo": ast.parse(code2)}
+        mod = ModuleType("mod")
         exec(code1, mod.__dict__)
         assert mod.foo(2) == 1
         self.autoreload_hook.patch_namespace(mod)
         assert mod.foo(2) == 55
-        self.autoreload_hook._to_autoreload.defs_to_reload = {'foo': ast.parse(code3)}
+        self.autoreload_hook._to_autoreload.defs_to_reload = {"foo": ast.parse(code3)}
         self.autoreload_hook.patch_namespace(mod)
         assert mod.foo(2) == 4
 
     def test_using_outside_param(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             x=1
             def foo(n):
                 return 1
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             x=1
             def foo(n):
                 return 55+x
-        """)
-        self.autoreload_hook._to_autoreload.defs_to_reload = {'foo': ast.parse(code2)}
-        mod = ModuleType('mod')
+        """
+        )
+        self.autoreload_hook._to_autoreload.defs_to_reload = {"foo": ast.parse(code2)}
+        mod = ModuleType("mod")
         exec(code1, mod.__dict__)
         assert mod.foo(2) == 1
         self.autoreload_hook.patch_namespace(mod)
         assert mod.foo(2) == 56
 
     def test_importing_func(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             from os import environ
             def foo(n):
                 pass
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             from os import environ
             def foo():
                 environ._data
                 return 1
-        """)
-        self.autoreload_hook._to_autoreload.defs_to_reload = {'foo': ast.parse(code2)}
-        mod = ModuleType('mod')
+        """
+        )
+        self.autoreload_hook._to_autoreload.defs_to_reload = {"foo": ast.parse(code2)}
+        mod = ModuleType("mod")
         exec(code1, mod.__dict__)
         self.autoreload_hook.patch_namespace(mod)
         assert mod.foo() == 1
@@ -668,11 +763,13 @@ class ShellFixture(unittest.TestCase):
 class AutoreloadHookSuite(ShellFixture):
     def test_autoreload_hook_basic(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             def foo(y):
                 return y + 3
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -690,11 +787,13 @@ class AutoreloadHookSuite(ShellFixture):
 
     def test_autoreload_hook_basic2(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             def foo(y):
                 return y + 3
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -711,11 +810,13 @@ class AutoreloadHookSuite(ShellFixture):
         assert mod.foo(0) == 5
 
     def test_autoreload_hook_basic3(self):
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             def foo(y):
                 return y + 3
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.magic_autoreload("2")
         self.shell.run_code("pass")
@@ -733,11 +834,13 @@ class AutoreloadHookSuite(ShellFixture):
         assert mod.foo(0) == 5
 
     def test_autoreload_hook_basic4(self):
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             def foo(y):
                 return y + 3
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.magic_autoreload("2")
         self.shell.run_code("pass")
@@ -755,11 +858,13 @@ class AutoreloadHookSuite(ShellFixture):
         assert mod.foo(0) == 5
 
     def test_autoreload_hook_basic5(self):
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             def foo(y):
                 return y + 3
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.shell.magic_autoreload("2")
@@ -778,11 +883,13 @@ class AutoreloadHookSuite(ShellFixture):
         assert mod.foo(0) == 5
 
     def test_autoreload_hook_basic6(self):
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             def foo(y):
                 return y + 3
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.shell.magic_autoreload("2")
@@ -802,35 +909,41 @@ class AutoreloadHookSuite(ShellFixture):
 
     def test_super(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             class Foo:
                 def foo(self):
                     return 1
             class Bar(Foo):
                 def bar(self):
                     return super().foo() + 1
-        """)
+        """
+        )
         self.shell.run_code(f"from {mod_name} import Bar; bar = Bar()")
         self.shell.run_code("pass")
         self.write_file(
-            mod_fn, """
+            mod_fn,
+            """
             class Foo:
                 def foo(self):
                     return 1
             class Bar(Foo):
                 def bar(self):
                     return super().foo() + 2
-            """)
+            """,
+        )
         self.shell.run_code("result = bar.bar()")
         assert self.shell.user_ns["result"] == 3
 
     def test_autoreload_hook_need_to_default_back(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             def foo(y):
                 return y + 3
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -848,11 +961,13 @@ class AutoreloadHookSuite(ShellFixture):
 
     def test_autoreload_hook_failure(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             def foo(y):
                 return y + 3
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -868,11 +983,13 @@ class AutoreloadHookSuite(ShellFixture):
 
     def test_autoreload_hook_imported_mod(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             from os import environ
             def foo(n):
                 pass
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -896,17 +1013,21 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
     """
 
     def test_autoreload_method(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             class C(n):
                 def foo():
                     pass
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             class C(n):
                 def foo():
                     x = 1
                     return x
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -914,24 +1035,30 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
         assert autoreload_hook.detect_autoreload(ast_1, ast_2)
         assert autoreload_hook._to_autoreload.defs_to_reload == {}
         assert "C" in autoreload_hook._to_autoreload.children
-        assert ["foo"] == list(autoreload_hook._to_autoreload.children["C"].defs_to_reload.keys())
+        assert ["foo"] == list(
+            autoreload_hook._to_autoreload.children["C"].defs_to_reload.keys()
+        )
         assert autoreload_hook._to_autoreload.children["C"].children == {}
 
     def test_autoreload_no_changes(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             class D(n):
                 def foo():
                     pass
             def foo():
                 pass
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             class D(n):
                 def foo():
                     pass
             def foo():
                 pass
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -941,14 +1068,17 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
         assert autoreload_hook._to_autoreload.children == {}
 
     def test_autoreload_add_function(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             class C:
                 def foo():
                     pass
             def foo():
                 pass
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             class C:
                 def foo():
                     x = 1
@@ -957,7 +1087,8 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
                     return -1
             def foo():
                 pass
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -965,24 +1096,29 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
         assert autoreload_hook.detect_autoreload(ast_1, ast_2)
         assert autoreload_hook._to_autoreload.defs_to_reload == {}
         assert "C" in autoreload_hook._to_autoreload.children
-        assert ["foo",
-                "bar"] == list(autoreload_hook._to_autoreload.children["C"].defs_to_reload.keys())
+        assert ["foo", "bar"] == list(
+            autoreload_hook._to_autoreload.children["C"].defs_to_reload.keys()
+        )
         assert len(autoreload_hook._to_autoreload.children["C"].children) == 0
 
     def test_autoreload_remove_method(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             class C:
                 def foo():
                     pass
             def foo():
                 pass
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             class C:
                 pass
             def foo():
                 pass
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -990,17 +1126,21 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
         assert autoreload_hook.detect_autoreload(ast_1, ast_2)
 
     def test_autoreload_remove_class(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             class C:
                 def foo():
                     pass
             def foo():
                 pass
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             def foo():
                 pass
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -1008,19 +1148,23 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
         assert autoreload_hook.detect_autoreload(ast_1, ast_2)
 
     def test_autoreload_add_class_in_class(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             class C:
                 pass
             def foo():
                 pass
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             class C:
                 class D:
                     pass
             def foo():
                 pass
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -1028,14 +1172,17 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
         assert autoreload_hook.detect_autoreload(ast_1, ast_2)
 
     def test_autoreload_add_method_in_class_in_class(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             class C:
                 class D:
                     x = 1
             def foo():
                 pass
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             class C:
                 class D:
                     x = 1
@@ -1043,7 +1190,8 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
                         return 1
             def foo():
                 pass
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -1052,22 +1200,28 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
         assert autoreload_hook._to_autoreload.defs_to_reload == {}
         assert list(autoreload_hook._to_autoreload.children.keys()) == ["C"]
         assert autoreload_hook._to_autoreload.children["C"].defs_to_reload == {}
-        assert list(autoreload_hook._to_autoreload.children["C"].children.keys()) == ["D"]
+        assert list(autoreload_hook._to_autoreload.children["C"].children.keys()) == [
+            "D"
+        ]
         assert list(
-            autoreload_hook._to_autoreload.children["C"].children["D"].defs_to_reload.keys()) == [
-                "foo"
-            ]
+            autoreload_hook._to_autoreload.children["C"]
+            .children["D"]
+            .defs_to_reload.keys()
+        ) == ["foo"]
         assert autoreload_hook._to_autoreload.children["C"].children["D"].children == {}
 
     def test_autoreload_add_var_and_method_in_class_in_class(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             class C:
                 class D:
                     pass
             def foo():
                 pass
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             class C:
                 class D:
                     x = 1
@@ -1075,7 +1229,8 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
                         return 1
             def foo():
                 pass
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -1083,21 +1238,25 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
         assert not autoreload_hook.detect_autoreload(ast_1, ast_2)
 
     def test_autoreload_add_method_in_class_in_class_pass(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             class C:
                 class D:
                     pass
             def foo():
                 pass
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             class C:
                 class D:
                     def foo():
                         return 1
             def foo():
                 pass
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -1106,22 +1265,28 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
         assert autoreload_hook._to_autoreload.defs_to_reload == {}
         assert list(autoreload_hook._to_autoreload.children.keys()) == ["C"]
         assert autoreload_hook._to_autoreload.children["C"].defs_to_reload == {}
-        assert list(autoreload_hook._to_autoreload.children["C"].children.keys()) == ["D"]
+        assert list(autoreload_hook._to_autoreload.children["C"].children.keys()) == [
+            "D"
+        ]
         assert list(
-            autoreload_hook._to_autoreload.children["C"].children["D"].defs_to_reload.keys()) == [
-                "foo"
-            ]
+            autoreload_hook._to_autoreload.children["C"]
+            .children["D"]
+            .defs_to_reload.keys()
+        ) == ["foo"]
         assert autoreload_hook._to_autoreload.children["C"].children["D"].children == {}
 
     def test_autoreload_add_method_in_class_in_class_more(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             class C:
                 class D:
                     pass
             def foo():
                 pass
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             class C:
                 def bar():
                     return -1
@@ -1130,7 +1295,8 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
                         return 1
             def foo():
                 pass
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -1138,23 +1304,31 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
         assert autoreload_hook.detect_autoreload(ast_1, ast_2)
         assert autoreload_hook._to_autoreload.defs_to_reload == {}
         assert list(autoreload_hook._to_autoreload.children.keys()) == ["C"]
-        assert list(autoreload_hook._to_autoreload.children["C"].defs_to_reload.keys()) == ["bar"]
-        assert list(autoreload_hook._to_autoreload.children["C"].children.keys()) == ["D"]
         assert list(
-            autoreload_hook._to_autoreload.children["C"].children["D"].defs_to_reload.keys()) == [
-                "foo"
-            ]
+            autoreload_hook._to_autoreload.children["C"].defs_to_reload.keys()
+        ) == ["bar"]
+        assert list(autoreload_hook._to_autoreload.children["C"].children.keys()) == [
+            "D"
+        ]
+        assert list(
+            autoreload_hook._to_autoreload.children["C"]
+            .children["D"]
+            .defs_to_reload.keys()
+        ) == ["foo"]
         assert autoreload_hook._to_autoreload.children["C"].children["D"].children == {}
 
     def test_autoreload_add_method_in_class_in_class_with_members(self):
-        code1 = squish_text("""
+        code1 = squish_text(
+            """
             class C:
                 class D:
                     pass
             def foo():
                 pass
-        """)
-        code2 = squish_text("""
+        """
+        )
+        code2 = squish_text(
+            """
             class C:
                 def bar():
                     return -1
@@ -1164,7 +1338,8 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
                         return 1
             def foo():
                 pass
-        """)
+        """
+        )
         autoreload_hook = AutoreloadReliabilityTestHook()
         ast_1 = ast.parse(code1)
         ast_2 = ast.parse(code2)
@@ -1175,12 +1350,14 @@ class AutoreloadClassMethodsDetectionSuite(unittest.TestCase):
 class AutoreloadReliabilitySuite(ShellFixture):
     def test_autoreload_class_basic(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             class C:
                 def foo():
                     return 1
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1199,14 +1376,16 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_remove_overridden_method(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             class A:
                 def foo(self):
                     return 1
             class B(A):
                 def foo(self):
                     return 42
-        """)
+        """
+        )
         self.shell.run_code(f"from {mod_name} import B; b = B()")
         self.shell.run_code("assert b.foo() == 42")
         self.write_file(
@@ -1223,12 +1402,14 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_use_outside_func(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             class C:
                 def foo():
                     return 1
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1247,12 +1428,14 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_use_class_member(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             class C:
                 def foo():
                     return 1
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1271,11 +1454,13 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_pass(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             class C:
                 pass
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1294,11 +1479,13 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_ellipsis(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 9
             class C:
                 ...
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1317,12 +1504,14 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_default_autoreload(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             class C:
                 x = 9
                 def foo():
                     return 1+C.x
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1341,13 +1530,15 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_nested(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             class C:
                 x = 9
                 class D:
                     def foo():
                         pass
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1367,7 +1558,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_nested2(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             class C:
                 x = 9
                 def c():
@@ -1375,7 +1567,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
                 class D:
                     def foo():
                         pass
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1398,7 +1591,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_nested3(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             class C:
                 x = 9
                 def c():
@@ -1406,7 +1600,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
                 class D:
                     def foo():
                         pass
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1429,12 +1624,14 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_new_class_added(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             class C:
                 x = 9
                 def c():
                     return 1
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1457,10 +1654,12 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_nested_default(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             class C:
                 pass
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1483,7 +1682,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_nested_using_members(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             class C:
                 x = 9
                 def c():
@@ -1491,7 +1691,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
                 class D:
                     def foo():
                         return 10
-            """)
+            """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1514,7 +1715,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_nested_using_members_ellipsis(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             class C:
                 x = 9
                 def c():
@@ -1522,7 +1724,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
                 class D:
                     def foo():
                         ...
-            """)
+            """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1545,7 +1748,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_method_decorators_no_changes(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_file = self.new_module("""
+        mod_name, mod_file = self.new_module(
+            """
             class Foo:
                 @classmethod
                 def bar(cls):
@@ -1556,7 +1760,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
                     return 42 + cls.bar()
             
             foo = Foo.foo
-            """)
+            """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.assertIn(mod_name, self.shell.user_ns)
@@ -1583,7 +1788,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_method_decorators_no_changes1(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_file = self.new_module("""
+        mod_name, mod_file = self.new_module(
+            """
             class Foo:
                 @classmethod
                 def bar(cls):
@@ -1594,7 +1800,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
                     return 42 + cls.bar()
             
             foo = Foo.foo
-            """)
+            """
+        )
 
         self.shell.run_code(f"from {mod_name} import foo")
         self.shell.run_code("assert foo() == 42")
@@ -1617,7 +1824,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_method_classmethod_one_change(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_file = self.new_module("""
+        mod_name, mod_file = self.new_module(
+            """
             class Foo:
                 @classmethod
                 def bar(cls):
@@ -1628,7 +1836,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
                     return 42 + cls.bar()
             
             func = Foo.func
-            """)
+            """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code(f"assert {mod_name}.func() == 42")
         self.write_file(
@@ -1650,7 +1859,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_method_staticmethod_one_change(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_file = self.new_module("""
+        mod_name, mod_file = self.new_module(
+            """
             class Foo:
                 @staticmethod
                 def bar():
@@ -1661,7 +1871,8 @@ class AutoreloadReliabilitySuite(ShellFixture):
                     return 42 + Foo.bar()
             
             func = Foo.func
-            """)
+            """
+        )
         self.shell.run_code(f"from {mod_name} import func")
         self.shell.run_code("assert func() == 42")
         self.write_file(
@@ -1683,11 +1894,13 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_default_args(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 42
             class Foo:
                 def foo(self, y): return y
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1707,11 +1920,13 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_change_default_args(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 42
             class Foo:
                 def foo(y): return y
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         self.write_file(
@@ -1729,11 +1944,13 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_class_new_class(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 42
             class Foo:
                 def foo(y=x): return y
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         prev_foo = self.shell.user_ns[mod_name].Foo.foo
@@ -1756,11 +1973,13 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_overloaded_vars(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 42
             class Foo:
                 pass
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         mod = sys.modules[mod_name]
@@ -1780,11 +1999,13 @@ class AutoreloadReliabilitySuite(ShellFixture):
 
     def test_autoreload_overloaded_vars2(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_fn = self.new_module("""
+        mod_name, mod_fn = self.new_module(
+            """
             x = 42
             def foo():
                 return x
-        """)
+        """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         mod = sys.modules[mod_name]
@@ -1809,28 +2030,33 @@ class DecoratorPatchingSuite(ShellFixture):
 
     def test_modify_property(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_file = self.new_module("""
+        mod_name, mod_file = self.new_module(
+            """
             class Foo:
                 @property
                 def foo(self):
                     return 42
-            """)
+            """
+        )
         self.shell.run_code(f"from {mod_name} import Foo")
         self.shell.run_code("foo = Foo()")
         self.shell.run_code("assert foo.foo == 42")
         self.write_file(
-            mod_file, """
+            mod_file,
+            """
             class Foo:
                 @property
                 def foo(self):
                     return 43
-            """)
+            """,
+        )
         self.shell.run_code("pass")
         self.shell.run_code("assert foo.foo == 43")
 
     def test_method_decorator(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_file = self.new_module("""
+        mod_name, mod_file = self.new_module(
+            """
             def incremented(f):
                 return lambda *args: f(*args) + 1
 
@@ -1841,7 +2067,8 @@ class DecoratorPatchingSuite(ShellFixture):
                     return 42
             
             foo = Foo.foo
-            """)
+            """
+        )
         self.shell.run_code(f"from {mod_name} import foo")
         self.shell.run_code("assert foo() == 43")
         self.write_file(
@@ -1862,7 +2089,8 @@ class DecoratorPatchingSuite(ShellFixture):
 
     def test_method_modified_decorator(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_file = self.new_module("""
+        mod_name, mod_file = self.new_module(
+            """
             def incremented(f):
                 return lambda *args: f(*args) + 1
 
@@ -1873,7 +2101,8 @@ class DecoratorPatchingSuite(ShellFixture):
                     return 42
             
             foo = Foo.foo
-            """)
+            """
+        )
         self.shell.run_code(f"from {mod_name} import foo")
         self.shell.run_code("assert foo() == 43")
         self.write_file(
@@ -1895,14 +2124,16 @@ class DecoratorPatchingSuite(ShellFixture):
 
     def test_function_decorators(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_file = self.new_module("""
+        mod_name, mod_file = self.new_module(
+            """
             def incremented(f):
                 return lambda *args: f(*args) + 1
             
             @incremented
             def foo():
                 return 42
-            """)
+            """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         mod = sys.modules[mod_name]
@@ -1937,7 +2168,8 @@ class DecoratorPatchingSuite(ShellFixture):
 
     def test_method_decorators_again(self):
         self.shell.magic_autoreload("2")
-        mod_name, mod_file = self.new_module("""
+        mod_name, mod_file = self.new_module(
+            """
             class Foo:
                 @classmethod
                 def bar(cls):
@@ -1948,7 +2180,8 @@ class DecoratorPatchingSuite(ShellFixture):
                     return 42 + cls.bar()
             
             foo = Foo.foo
-            """)
+            """
+        )
         self.shell.run_code("import %s" % mod_name)
         self.shell.run_code("pass")
         mod = sys.modules[mod_name]
@@ -1998,4 +2231,4 @@ class TestAutoreloadEnum(ShellFixture):
             """,
         )
         self.shell.run_code("pass")
-        assert mod.MyEnum.C.value == 'C'
+        assert mod.MyEnum.C.value == "C"
