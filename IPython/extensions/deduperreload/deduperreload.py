@@ -94,8 +94,7 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
     If other changes are made, original autoreload algorithm is called directly.
     """
 
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
+    def __init__(self) -> None:
         self._to_autoreload: AutoreloadTree = AutoreloadTree()
         self.source_by_modname: dict[str, str] = {}
         self.dependency_graph: dict[tuple[str, ...], list[DependencyNode]] = {}
@@ -170,9 +169,11 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
                 for handler in ast_elt.handlers:
                     if handler.type is not None:
                         unfixable.append(handler.type)
-                    handler_defs, handler_classes, handler_unfixable = (
-                        cls._gather_children(handler.body)
-                    )
+                    (
+                        handler_defs,
+                        handler_classes,
+                        handler_unfixable,
+                    ) = cls._gather_children(handler.body)
                     defs.update(handler_defs)
                     classes.update(handler_classes)
                     unfixable.extend(handler_unfixable)
@@ -219,7 +220,7 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
             self.add_node_to_autoreload_tree(node)
         return True
 
-    def add_node_to_autoreload_tree(self, node: DependencyNode):
+    def add_node_to_autoreload_tree(self, node: DependencyNode) -> None:
         if len(node.qualified_name) == 0:
             return
         cur = self._to_autoreload.traverse_prefixes(list(node.qualified_name[:-1]))
@@ -356,11 +357,11 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         except Exception:
             return False
 
-    def maybe_reload_module(self, module, *_) -> bool:
+    def maybe_reload_module(self, module: ModuleType) -> bool:
         if not (modname := getattr(module, "__name__", None)):
-            return
+            return False
         if (fname := get_module_file_name(module)) is None:
-            return
+            return False
         with open(fname, "r") as f:
             new_source_code = f.read()
         patched_flag = False
