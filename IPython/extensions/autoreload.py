@@ -108,6 +108,7 @@ Some of the known remaining caveats are:
 from IPython.core import magic_arguments
 from IPython.core.magic import Magics, magics_class, line_magic
 from IPython.extensions.deduperreload.deduperreload import DeduperReloader
+
 __skip_doctest__ = True
 
 # -----------------------------------------------------------------------------
@@ -273,7 +274,10 @@ class ModuleReloader:
             if do_reload:
                 self._report(f"Reloading '{modname}'.")
                 try:
-                    if use_deduper_reload and self.deduper_reloader.maybe_reload_module(m):
+                    if (
+                        use_deduper_reload
+                        and self.deduper_reloader.maybe_reload_module(m)
+                    ):
                         pass
                     elif self.autoload_obj:
                         superreload(m, reload, self.old_objects, self.shell)

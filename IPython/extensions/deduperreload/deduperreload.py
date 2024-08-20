@@ -7,12 +7,17 @@ import textwrap
 from types import ModuleType
 from typing import TYPE_CHECKING, Any, NamedTuple
 
-from IPython.extensions.deduperreload.deduperreload_patching import DeduperReloaderPatchingMixin
+from IPython.extensions.deduperreload.deduperreload_patching import (
+    DeduperReloaderPatchingMixin,
+)
+
 if TYPE_CHECKING:
     from IPython.core.interactiveshell import ExecutionResult
+
     TDefinitionAst = ast.FunctionDef | ast.AsyncFunctionDef
 
 DefinitionAst = (ast.FunctionDef, ast.AsyncFunctionDef)
+
 
 def get_module_file_name(module: ModuleType | str) -> str:
     if (mod := sys.modules.get(module) if isinstance(module, str) else module) is None:
@@ -26,14 +31,23 @@ def compare_ast(node1: ast.AST | list[ast.AST], node2: ast.AST | list[ast.AST]) 
 
     if isinstance(node1, ast.AST):
         for k, v in node1.__dict__.items():
-            if k in ("lineno", "end_lineno", "col_offset", "end_col_offset", "ctx", "parent"):
+            if k in (
+                "lineno",
+                "end_lineno",
+                "col_offset",
+                "end_col_offset",
+                "ctx",
+                "parent",
+            ):
                 continue
             if not hasattr(node2, k) or not compare_ast(v, getattr(node2, k)):
                 return False
         return True
 
     elif isinstance(node1, list) and isinstance(node2, list):
-        return len(node1) == len(node2) and all(compare_ast(n1, n2) for n1, n2 in zip(node1, node2))
+        return len(node1) == len(node2) and all(
+            compare_ast(n1, n2) for n1, n2 in zip(node1, node2)
+        )
     else:
         return node1 == node2
 
@@ -44,6 +58,7 @@ class DependencyNode(NamedTuple):
     qualified_name: string which represents the namespace/name of the function
     abstract_syntax_tree: subtree of the overall module which corresponds to this function
     """
+
     qualified_name: tuple[str, ...]
     abstract_syntax_tree: ast.AST
 
@@ -73,10 +88,10 @@ class AutoreloadTree:
 
 class DeduperReloader(DeduperReloaderPatchingMixin):
     """
-    This version of autoreload detects when we can leverage targeted recompilation of a subset of a module and patching existing function/method objects to reflect these changes. 
+    This version of autoreload detects when we can leverage targeted recompilation of a subset of a module and patching existing function/method objects to reflect these changes.
 
-    Detects what functions/methods can be reloaded by recursively comparing the old/new AST of module-level classes, module-level classes' methods, recursing through nested classes' methods. 
-    If other changes are made, original autoreload algorithm is called directly. 
+    Detects what functions/methods can be reloaded by recursively comparing the old/new AST of module-level classes, module-level classes' methods, recursing through nested classes' methods.
+    If other changes are made, original autoreload algorithm is called directly.
     """
 
     def __init__(self, **kwargs) -> None:
@@ -84,7 +99,6 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         self._to_autoreload: AutoreloadTree = AutoreloadTree()
         self.source_by_modname: dict[str, str] = {}
         self.dependency_graph: dict[tuple[str, ...], list[DependencyNode]] = {}
-
 
     def update_sources(self) -> None:
         for new_modname in sys.modules.keys() - self.source_by_modname.keys():
@@ -101,7 +115,7 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
 
     @classmethod
     def _gather_children(
-            cls, body: list[ast.stmt]
+        cls, body: list[ast.stmt]
     ) -> tuple[dict[str, TDefinitionAst], dict[str, ast.ClassDef], list[ast.AST]]:
         defs: dict[str, TDefinitionAst] = {}
         classes: dict[str, ast.ClassDef] = {}
@@ -117,7 +131,9 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
             elif isinstance(ast_elt, ast.If):
                 unfixable.append(ast_elt.test)
                 if_defs, if_classes, if_unfixable = cls._gather_children(ast_elt.body)
-                else_defs, else_classes, else_unfixable = cls._gather_children(ast_elt.orelse)
+                else_defs, else_classes, else_unfixable = cls._gather_children(
+                    ast_elt.orelse
+                )
                 defs.update(if_defs)
                 defs.update(else_defs)
                 classes.update(if_classes)
@@ -126,15 +142,22 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
                 unfixable.extend(else_unfixable)
             elif isinstance(ast_elt, (ast.AsyncWith, ast.With)):
                 unfixable.extend(ast_elt.items)
-                with_defs, with_classes, with_unfixable = cls._gather_children(ast_elt.body)
+                with_defs, with_classes, with_unfixable = cls._gather_children(
+                    ast_elt.body
+                )
                 defs.update(with_defs)
                 classes.update(with_classes)
                 unfixable.extend(with_unfixable)
             elif isinstance(ast_elt, ast.Try):
-                try_defs, try_classes, try_unfixable = cls._gather_children(ast_elt.body)
-                else_defs, else_classes, else_unfixable = cls._gather_children(ast_elt.orelse)
+                try_defs, try_classes, try_unfixable = cls._gather_children(
+                    ast_elt.body
+                )
+                else_defs, else_classes, else_unfixable = cls._gather_children(
+                    ast_elt.orelse
+                )
                 finally_defs, finally_classes, finally_unfixable = cls._gather_children(
-                    ast_elt.finalbody)
+                    ast_elt.finalbody
+                )
                 defs.update(try_defs)
                 defs.update(else_defs)
                 defs.update(finally_defs)
@@ -147,8 +170,9 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
                 for handler in ast_elt.handlers:
                     if handler.type is not None:
                         unfixable.append(handler.type)
-                    handler_defs, handler_classes, handler_unfixable = cls._gather_children(
-                        handler.body)
+                    handler_defs, handler_classes, handler_unfixable = (
+                        cls._gather_children(handler.body)
+                    )
                     defs.update(handler_defs)
                     classes.update(handler_classes)
                     unfixable.extend(handler_unfixable)
@@ -156,10 +180,12 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
                 unfixable.append(ast_elt)
         return defs, classes, unfixable
 
-    def detect_autoreload(self,
-                          old_node: ast.Module | ast.ClassDef,
-                          new_node: ast.Module | ast.ClassDef,
-                          prefixes: list[str] | None = None) -> bool:
+    def detect_autoreload(
+        self,
+        old_node: ast.Module | ast.ClassDef,
+        new_node: ast.Module | ast.ClassDef,
+        prefixes: list[str] | None = None,
+    ) -> bool:
         """
         Returns `true` if we can run our targeted autoreload algorithm safely.
         Returns `false` if we should instead use IPython's original autoreload implementation.
@@ -180,9 +206,11 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         for name, new_ast_def_class in new_classes.items():
             if name not in old_classes:
                 cur.new_nested_classes[name] = new_ast_def_class
-            elif not compare_ast(new_ast_def_class,
-                                 old_classes[name]) and not self.detect_autoreload(
-                                     old_classes[name], new_ast_def_class, prefixes + [name]):
+            elif not compare_ast(
+                new_ast_def_class, old_classes[name]
+            ) and not self.detect_autoreload(
+                old_classes[name], new_ast_def_class, prefixes + [name]
+            ):
                 return False
         return True
 
@@ -198,7 +226,9 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         if node.abstract_syntax_tree:
             cur.defs_to_reload[node.qualified_name[-1]] = node.abstract_syntax_tree
 
-    def check_dependents_inner(self, prefixes: list[str] | None = None) -> list[DependencyNode]:
+    def check_dependents_inner(
+        self, prefixes: list[str] | None = None
+    ) -> list[DependencyNode]:
         # for each func in autoreload tree, we should check if it is in self.dependency_graph
         prefixes = prefixes or []
         cur = self._to_autoreload.traverse_prefixes(prefixes)
@@ -220,8 +250,9 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
             ans.append(elt)
         return ans
 
-    def _patch_namespace_inner(self, ns: ModuleType | type,
-                               prefixes: list[str] | None = None) -> bool:
+    def _patch_namespace_inner(
+        self, ns: ModuleType | type, prefixes: list[str] | None = None
+    ) -> bool:
         """
         This function patches module functions and methods. Specifically, only objects with their name in self.to_autoreload will be considered for patching.
         If an object has been marked to be autoreloaded, new_source_code gets executed in the old version's global environment.
@@ -241,7 +272,9 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
                 # exec new source code using old function's (obj) globals environment.
                 func_code = textwrap.dedent(ast.unparse(new_ast_def))
                 if is_method := (len(prefixes) > 0):
-                    func_code = "class __autoreload_class__:\n" + textwrap.indent(func_code, "    ")
+                    func_code = "class __autoreload_class__:\n" + textwrap.indent(
+                        func_code, "    "
+                    )
                 global_env = namespace_to_check.__dict__
                 if hasattr(to_patch_to, "__globals__"):
                     global_env = to_patch_to.__globals__
@@ -262,21 +295,35 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
                     to_patch_from = local_env[name]
                 if isinstance(to_patch_from, (staticmethod, classmethod)):
                     to_patch_from = to_patch_from.__func__
-                if isinstance(to_patch_to, property) and isinstance(to_patch_from, property):
+                if isinstance(to_patch_to, property) and isinstance(
+                    to_patch_from, property
+                ):
                     for attr in ("fget", "fset", "fdel"):
-                        if getattr(to_patch_to, attr) is None or getattr(to_patch_from,
-                                                                         attr) is None:
+                        if (
+                            getattr(to_patch_to, attr) is None
+                            or getattr(to_patch_from, attr) is None
+                        ):
                             self.try_patch_attr(to_patch_to, to_patch_from, attr)
                         else:
                             self.patch_function(
-                                getattr(to_patch_to, attr), getattr(to_patch_from, attr), is_method)
+                                getattr(to_patch_to, attr),
+                                getattr(to_patch_from, attr),
+                                is_method,
+                            )
                 elif not isinstance(to_patch_to, property) and not isinstance(
-                        to_patch_from, property):
+                    to_patch_from, property
+                ):
                     self.patch_function(to_patch_to, to_patch_from, is_method)
                 else:
-                    raise ValueError("adding or removing property decorations not supported")
+                    raise ValueError(
+                        "adding or removing property decorations not supported"
+                    )
             else:
-                exec(ast.unparse(new_ast_def), ns.__dict__ | namespace_to_check.__dict__, local_env)
+                exec(
+                    ast.unparse(new_ast_def),
+                    ns.__dict__ | namespace_to_check.__dict__,
+                    local_env,
+                )
                 setattr(namespace_to_check, name, local_env[name])
         cur.defs_to_reload.clear()
         for name in cur.defs_to_delete:
@@ -289,8 +336,10 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         for class_name, class_ast_node in cur.new_nested_classes.items():
             local_env_class: dict[str, Any] = {}
             exec(
-                ast.unparse(class_ast_node), ns.__dict__ | namespace_to_check.__dict__,
-                local_env_class)
+                ast.unparse(class_ast_node),
+                ns.__dict__ | namespace_to_check.__dict__,
+                local_env_class,
+            )
             setattr(namespace_to_check, class_name, local_env_class[class_name])
         cur.new_nested_classes.clear()
         for class_name in cur.children.keys():
@@ -299,7 +348,9 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         cur.children.clear()
         return True
 
-    def patch_namespace(self, ns: ModuleType | type, prefixes: list[str] | None = None) -> bool:
+    def patch_namespace(
+        self, ns: ModuleType | type, prefixes: list[str] | None = None
+    ) -> bool:
         try:
             return self._patch_namespace_inner(ns, prefixes=prefixes)
         except Exception:
@@ -324,16 +375,22 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
             ctx = contextlib.suppress()
             with ctx:
                 self.build_dependency_graph(new_module_ast)
-                if self.detect_autoreload(old_module_ast, new_module_ast) and self.check_dependents(
-                ) and self.patch_namespace(module):
+                if (
+                    self.detect_autoreload(old_module_ast, new_module_ast)
+                    and self.check_dependents()
+                    and self.patch_namespace(module)
+                ):
                     patched_flag = True
-                
+
         self.source_by_modname[modname] = new_source_code
         self._to_autoreload = AutoreloadTree()
         return patched_flag
 
-    def _separate_name(self, decorator: ast.Attribute | ast.Name | ast.Call | ast.expr,
-                       accept_calls: bool) -> list[str] | None:
+    def _separate_name(
+        self,
+        decorator: ast.Attribute | ast.Name | ast.Call | ast.expr,
+        accept_calls: bool,
+    ) -> list[str] | None:
         if isinstance(decorator, ast.Name):
             return [decorator.id]
         elif isinstance(decorator, ast.Call):
@@ -343,13 +400,14 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
                 return None
         if not isinstance(decorator, ast.Attribute):
             return None
-        if (pref := self._separate_name(decorator.value, False)):
+        if pref := self._separate_name(decorator.value, False):
             return pref + [decorator.attr]
         else:
             return None
 
-    def _gather_dependents(self, body: list[ast.stmt],
-                           body_prefixes: list[str] | None = None) -> bool:
+    def _gather_dependents(
+        self, body: list[ast.stmt], body_prefixes: list[str] | None = None
+    ) -> bool:
         body_prefixes = body_prefixes or []
         for ast_node in body:
             ast_elt: ast.expr | ast.stmt = ast_node
@@ -365,8 +423,9 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
                 if not decorator_path:
                     continue
                 decorator_path_tuple = tuple(decorator_path)
-                self.dependency_graph.setdefault(decorator_path_tuple,
-                                                 []).append(cur_dependency_node)
+                self.dependency_graph.setdefault(decorator_path_tuple, []).append(
+                    cur_dependency_node
+                )
         return True
 
     def build_dependency_graph(self, new_ast: ast.Module | ast.ClassDef) -> bool:
