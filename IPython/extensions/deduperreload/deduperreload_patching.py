@@ -1,6 +1,5 @@
 from __future__ import annotations
 import ctypes
-import platform
 import sys
 from typing import Any
 
@@ -48,9 +47,6 @@ class DeduperReloaderPatchingMixin:
         new_value: object,
         offset: int | None = None,
     ) -> None:
-
-        if platform.python_implementation() != "CPython":
-            return
         prev_value = getattr(obj, field, NOT_FOUND)
         if prev_value is NOT_FOUND:
             return

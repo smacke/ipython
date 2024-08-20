@@ -128,6 +128,7 @@ __skip_doctest__ = True
 # -----------------------------------------------------------------------------
 
 import os
+import platform
 import sys
 import traceback
 import types
@@ -276,6 +277,7 @@ class ModuleReloader:
                 try:
                     if (
                         use_deduper_reload
+                        and (platform.python_implementation() == "CPython")
                         and self.deduper_reloader.maybe_reload_module(m)
                     ):
                         pass
