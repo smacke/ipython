@@ -2,6 +2,7 @@ from __future__ import annotations
 import ast
 import os
 import platform
+import pytest
 import random
 import shutil
 import sys
@@ -14,6 +15,12 @@ from types import ModuleType
 from IPython.extensions.autoreload import AutoreloadMagics
 
 from IPython.extensions.deduperreload.deduperreload import compare_ast, DeduperReloader
+
+if platform.python_implementation() != "CPython":
+    pytest.skip(
+        "We do not support non-CPython versions.",
+        allow_module_level=True,
+    )
 
 
 class AutoreloadReliabilityTestHook(DeduperReloader):
@@ -933,7 +940,9 @@ class AutoreloadHookSuite(ShellFixture):
             """,
         )
         self.shell.run_code("result = bar.bar()")
-        assert self.shell.user_ns["result"] == 3
+        # NOTE : only works on CPython, requires read-only patching.
+        if platform.python_implementation() == "CPython":
+            assert self.shell.user_ns["result"] == 3
 
     def test_autoreload_hook_need_to_default_back(self):
         self.shell.magic_autoreload("2")
@@ -1855,6 +1864,7 @@ class AutoreloadReliabilitySuite(ShellFixture):
             func = Foo.func
             """,
         )
+        mod = sys.modules[mod_name]
         self.shell.run_code(f"assert {mod_name}.func() == 43")
 
     def test_method_staticmethod_one_change(self):
