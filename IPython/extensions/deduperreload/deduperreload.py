@@ -20,12 +20,14 @@ DefinitionAst = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 
 def get_module_file_name(module: ModuleType | str) -> str:
+    """Returns the module's file path, or the empty string if it's inaccessible"""
     if (mod := sys.modules.get(module) if isinstance(module, str) else module) is None:
         return ""
     return getattr(mod, "__file__", "") or ""
 
 
 def compare_ast(node1: ast.AST | list[ast.AST], node2: ast.AST | list[ast.AST]) -> bool:
+    """Checks if node1 and node2 have identical AST structure/values, apart from some attributes"""
     if type(node1) is not type(node2):
         return False
 
@@ -57,6 +59,15 @@ class DependencyNode(NamedTuple):
     Each node represents a function.
     qualified_name: string which represents the namespace/name of the function
     abstract_syntax_tree: subtree of the overall module which corresponds to this function
+
+    qualified_name is of the structure: (namespace1, namespace2, ..., name)
+
+    For example, foo() in the following would be represented as (A, B, foo):
+
+    class A:
+        class B:
+            def foo():
+                pass
     """
 
     qualified_name: tuple[str, ...]
@@ -66,7 +77,7 @@ class DependencyNode(NamedTuple):
 class AutoreloadTree:
     """
     Recursive data structure to keep track of reloadable functions/methods. Each object corresponds to a specific scope level.
-    Children: classes inside given scope, maps class name to autoreload tree for that class's scope
+    children: classes inside given scope, maps class name to autoreload tree for that class's scope
     funcs_to_autoreload: list of function names that can be autoreloaded in given scope.
     new_nested_classes: Classes getting added in new autoreload cycle
     """
@@ -78,6 +89,9 @@ class AutoreloadTree:
         self.new_nested_classes: dict[str, ast.AST] = {}
 
     def traverse_prefixes(self, prefixes: list[str]) -> AutoreloadTree:
+        """
+        Return ref to the AutoreloadTree at the namespace specified by prefixes
+        """
         cur = self
         for prefix in prefixes:
             if prefix not in cur.children:
@@ -100,6 +114,9 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         self.dependency_graph: dict[tuple[str, ...], list[DependencyNode]] = {}
 
     def update_sources(self) -> None:
+        """
+        Update dictionary source_by_modname with current modules' source codes.
+        """
         for new_modname in sys.modules.keys() - self.source_by_modname.keys():
             new_module = sys.modules[new_modname]
             if (fname := get_module_file_name(new_module)) is None:
@@ -116,6 +133,12 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
     def _gather_children(
         cls, body: list[ast.stmt]
     ) -> tuple[dict[str, TDefinitionAst], dict[str, ast.ClassDef], list[ast.AST]]:
+        """
+        Given list of ast elements, return:
+        1. dict mapping function names to their ASTs.
+        2. dict mapping class names to their ASTs.
+        3. list of any other ASTs.
+        """
         defs: dict[str, TDefinitionAst] = {}
         classes: dict[str, ast.ClassDef] = {}
         unfixable: list[ast.AST] = []
@@ -216,11 +239,18 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         return True
 
     def check_dependents(self) -> bool:
+        """
+        If a decorator function is modified, we should similarly reload the functions which are decorated by this decorator.
+        Iterate through the Dependency Graph to find such cases in the given AutoreloadTree.
+        """
         for node in self.check_dependents_inner():
             self.add_node_to_autoreload_tree(node)
         return True
 
     def add_node_to_autoreload_tree(self, node: DependencyNode) -> None:
+        """
+        Given a node of the dependency graph, add decorator dependencies to the autoreload tree.
+        """
         if len(node.qualified_name) == 0:
             return
         cur = self._to_autoreload.traverse_prefixes(list(node.qualified_name[:-1]))
@@ -230,7 +260,6 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
     def check_dependents_inner(
         self, prefixes: list[str] | None = None
     ) -> list[DependencyNode]:
-        # for each func in autoreload tree, we should check if it is in self.dependency_graph
         prefixes = prefixes or []
         cur = self._to_autoreload.traverse_prefixes(prefixes)
         ans = []
@@ -242,7 +271,6 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         return ans
 
     def gen_dependents(self, qualname: tuple[str, ...]) -> list[DependencyNode]:
-        # for this function, go through the tree of dependencies and append them all
         ans = []
         if qualname not in self.dependency_graph:
             return []
@@ -352,12 +380,20 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
     def patch_namespace(
         self, ns: ModuleType | type, prefixes: list[str] | None = None
     ) -> bool:
+        """
+        Wrapper for patching all elements in a namespace as specified by the to_autoreload member variable.
+        Returns `true` if patching was successful, and `false` if unsuccessful.
+        """
         try:
             return self._patch_namespace_inner(ns, prefixes=prefixes)
         except Exception:
             return False
 
     def maybe_reload_module(self, module: ModuleType) -> bool:
+        """
+        Uses Deduperreload to try to update a module.
+        Returns `true` on success and `false` on failure.
+        """
         if not (modname := getattr(module, "__name__", None)):
             return False
         if (fname := get_module_file_name(module)) is None:
@@ -392,6 +428,9 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         decorator: ast.Attribute | ast.Name | ast.Call | ast.expr,
         accept_calls: bool,
     ) -> list[str] | None:
+        """
+        Generates a qualified name for a given decorator by finding its relative namespace.
+        """
         if isinstance(decorator, ast.Name):
             return [decorator.id]
         elif isinstance(decorator, ast.Call):
@@ -430,4 +469,9 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         return True
 
     def build_dependency_graph(self, new_ast: ast.Module | ast.ClassDef) -> bool:
+        """
+        Wrapper function for generating dependency graph given some AST.
+        Returns `true` on success. Returns `false` on failure.
+        Currently, only returns `true` as we do not block on failure to build this graph.
+        """
         return self._gather_dependents(new_ast.body)
