@@ -275,6 +275,7 @@ class ModuleReloader:
             if do_reload:
                 self._report(f"Reloading '{modname}'.")
                 try:
+                    # check if deduperreload is viable for this module
                     if (
                         use_deduper_reload
                         and (platform.python_implementation() == "CPython")
