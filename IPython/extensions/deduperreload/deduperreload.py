@@ -119,7 +119,11 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         """
         for new_modname in sys.modules.keys() - self.source_by_modname.keys():
             new_module = sys.modules[new_modname]
-            if (fname := get_module_file_name(new_module)) is None or "site-packages" in fname:
+            if (
+                (fname := get_module_file_name(new_module)) is None
+                or "site-packages" in fname
+                or "dist-packages" in fname
+            ):
                 self.source_by_modname[new_modname] = ""
                 continue
             with open(fname, "r") as f:
