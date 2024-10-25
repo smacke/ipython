@@ -119,15 +119,18 @@ class DeduperReloader(DeduperReloaderPatchingMixin):
         """
         for new_modname in sys.modules.keys() - self.source_by_modname.keys():
             new_module = sys.modules[new_modname]
-            if (fname := get_module_file_name(new_module)) is None:
+            if (
+                (fname := get_module_file_name(new_module)) is None
+                or "site-packages" in fname
+                or "dist-packages" in fname
+            ):
                 self.source_by_modname[new_modname] = ""
                 continue
-            if os.access(fname, os.R_OK):
-                with open(fname, "r") as f:
-                    try:
-                        self.source_by_modname[new_modname] = f.read()
-                    except Exception:
-                        self.source_by_modname[new_modname] = ""
+            with open(fname, "r") as f:
+                try:
+                    self.source_by_modname[new_modname] = f.read()
+                except Exception:
+                    self.source_by_modname[new_modname] = ""
 
     @classmethod
     def _gather_children(
